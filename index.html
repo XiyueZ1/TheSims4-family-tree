@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sims 4 族谱导出 GEDCOM</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #fffdf8; --ink: #23302a; --muted: #6b766f; --line: #e3ded2;
+    --accent: #2f7d5b; --accent-ink: #fff; --soft: #e7f2ec; --warn: #a2551c; --dead: #8a8f99;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161a18; --card: #1f2421; --ink: #e8ece9; --muted: #9aa69f; --line: #323a35; --accent: #5dbb8d; --accent-ink: #0d1a13; --soft: #22332a; --warn: #e2a06b; --dead: #7d838c; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 40px 20px 60px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: .5px; }
+  h1 .plumb { display: inline-block; width: 14px; height: 22px; margin-right: 10px; background: var(--accent); clip-path: polygon(50% 0, 100% 35%, 50% 100%, 0 35%); vertical-align: -2px; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-bottom: 18px; }
+  .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 34px 20px; text-align: center; cursor: pointer; transition: .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--soft); }
+  .drop b { display: block; font-size: 17px; margin-bottom: 6px; }
+  .drop small { color: var(--muted); }
+  code { background: var(--soft); padding: 1px 6px; border-radius: 5px; font-size: 13px; word-break: break-all; }
+  .status { margin-top: 12px; color: var(--muted); min-height: 1.4em; }
+  .status.err { color: var(--warn); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .stat { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
+  .stat .n { font-size: 22px; font-weight: 700; }
+  .stat .l { font-size: 12px; color: var(--muted); }
+  h2 { font-size: 17px; margin: 0 0 14px; }
+  .opts label { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; cursor: pointer; }
+  .opts input[type=radio], .opts input[type=checkbox] { margin-top: 5px; accent-color: var(--accent); }
+  .opts .hint { color: var(--muted); font-size: 13px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input[type=search] { flex: 1; min-width: 200px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); color: var(--ink); font: inherit; }
+  .pick { margin-top: 8px; max-height: 180px; overflow: auto; border: 1px solid var(--line); border-radius: 9px; display: none; }
+  .pick div { padding: 7px 12px; cursor: pointer; border-bottom: 1px solid var(--line); }
+  .pick div:last-child { border-bottom: 0; }
+  .pick div:hover { background: var(--soft); }
+  .chosen { margin-top: 8px; font-size: 14px; }
+  .chosen button { margin-left: 8px; }
+  button { font: inherit; border: 0; border-radius: 10px; padding: 11px 20px; cursor: pointer; }
+  .primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .primary:disabled { opacity: .5; cursor: default; }
+  .ghost { background: transparent; color: var(--accent); padding: 4px 8px; border: 1px solid var(--line); font-size: 13px; }
+  .summary { color: var(--muted); margin-left: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; position: sticky; top: 0; background: var(--card); }
+  .tablewrap { max-height: 420px; overflow: auto; }
+  .tag { font-size: 12px; padding: 1px 7px; border-radius: 20px; background: var(--soft); white-space: nowrap; }
+  .tag.dead { background: transparent; border: 1px solid var(--dead); color: var(--dead); }
+  .tag.gone { background: transparent; border: 1px dashed var(--muted); color: var(--muted); }
+  .help ol { padding-left: 20px; margin: 6px 0; }
+  .help li { margin: 4px 0; }
+  .hidden { display: none; }
+  .treebar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .treebar select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .treewrap { position: relative; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); height: 560px; cursor: grab; }
+  .treewrap.drag { cursor: grabbing; }
+  .treewrap svg { display: block; }
+  .tsearch { position: relative; flex: 1; min-width: 200px; }
+  .tsearch .pick { position: absolute; left: 0; right: 0; z-index: 5; background: var(--card); margin-top: 4px; }
+  .legend { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
+  .namelink { cursor: pointer; color: var(--accent); }
+  .namelink:hover { text-decoration: underline; }
+  footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 30px; }
+</style>
+</head>
+<body>
+<main>
+  <h1><span class="plumb"></span>Sims 4 族谱导出</h1>
+  <p class="sub">把模拟市民 4 存档里的家族关系导出为 GEDCOM（.ged）文件，可以导入 Ahnenblatt、Gramps、MyHeritage 等族谱软件。</p>
+
+  <section class="card">
+    <div class="drop" id="drop">
+      <b>点击选择或拖入存档文件（.save）</b>
+      <small>存档位置：<code>文档\Electronic Arts\The Sims 4\saves\</code><br>
+      文件名形如 <code>Slot_00000001.save</code>，在游戏里存档界面可以看到对应的槽位。<br>
+      文件只在你的浏览器里读取，不会上传到任何地方。</small>
+      <input type="file" id="file" accept=".save,.ver0,.ver1,.ver2,.ver3,.ver4" hidden>
+    </div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <section id="result" class="hidden">
+    <div class="stats" id="stats"></div>
+
+    <div class="card" id="treeCard">
+      <h2>族谱查看</h2>
+      <div class="treebar">
+        <div class="tsearch"><input type="search" id="tsearch" placeholder="搜索小人，以他为中心查看" style="width:100%"><div class="pick" id="tpick"></div></div>
+        <label>祖先 <select id="upGen"><option>1</option><option>2</option><option selected>3</option><option>4</option></select> 代</label>
+        <label>子孙 <select id="downGen"><option>1</option><option selected>2</option><option>3</option><option>4</option></select> 代</label>
+        <button class="ghost" id="zin">放大</button><button class="ghost" id="zout">缩小</button><button class="ghost" id="zfit">居中</button>
+      </div>
+      <div class="treewrap" id="treewrap"></div>
+      <div class="legend">点击任意小人切换中心，可拖动画面浏览。<i style="background:#5b8fd6"></i>男<i style="background:#d6739a"></i>女<i style="background:var(--dead)"></i>已去世<i style="border:1px dashed var(--muted)"></i>已被游戏清除</div>
+    </div>
+
+    <div class="card opts">
+      <h2>导出范围</h2>
+      <label><input type="radio" name="scope" value="related" checked>
+        <span>所有有亲属或婚姻关系的小人<br><span class="hint">没有任何父母、子女、配偶记录的独立小人不导出</span></span></label>
+      <label><input type="radio" name="scope" value="all">
+        <span>存档里的全部小人</span></label>
+      <label><input type="radio" name="scope" value="family">
+        <span>只导出某个小人所在的家族<br><span class="hint">包括所有通过血缘或婚姻能连到这个小人的人</span></span></label>
+      <div id="familyBox" class="hidden">
+        <input type="search" id="search" placeholder="输入名字搜索小人">
+        <div class="pick" id="pick"></div>
+        <div class="chosen" id="chosen"></div>
+      </div>
+      <h2 style="margin-top:18px">其他选项</h2>
+      <label><input type="checkbox" id="optRemoved" checked>
+        <span>包括已被游戏清除的祖先<br><span class="hint">游戏会删掉一些去世很久的小人。如果关系图里还留有他们的名字就会用上，否则显示为“未知”</span></span></label>
+      <label><input type="checkbox" id="optPets">
+        <span>包括宠物</span></label>
+      <div class="row" style="margin-top:16px">
+        <button class="primary" id="dl">下载 .ged 文件</button>
+        <span class="summary" id="summary"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>预览</h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>名字</th><th>性别</th><th>年龄段</th><th>状态</th><th>父母</th><th>配偶</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="card help">
+    <h2>导入 Ahnenblatt</h2>
+    <ol>
+      <li>打开 Ahnenblatt，选择 <b>Datei → Öffnen</b>（文件 → 打开）。英文界面是 File → Open。</li>
+      <li>文件类型选 GEDCOM（*.ged），选中下载的文件。</li>
+      <li>如果中文名字显示成乱码，在导入设置里把字符集选为 UTF-8。</li>
+    </ol>
+    <p class="hint" style="color:var(--muted);font-size:13px;margin:8px 0 0">
+      小人的年龄段、所属家庭和 Sim ID 会写在每个人的备注里。游戏不记录出生和死亡日期，所以去世的小人只标记为“已去世”。</p>
+  </section>
+
+  <footer>本工具在浏览器本地运行，不收集任何数据。与 EA 和 Maxis 无关。</footer>
+</main>
+
+<script>
+// ===== Sims 4 save -> GEDCOM core (no dependencies) =====
+// Field numbers come from the EA.Sims4.Persistence protobuf schema.
+const S4G = (() => {
+  const SAVE_TYPE = 0x0000000D;
+
+  // ---------- DBPF ----------
+  function readDbpf(buf) {
+    const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+    const magic = String.fromCharCode(buf[0], buf[1], buf[2], buf[3]);
+    if (magic !== 'DBPF') throw new Error('不是有效的 Sims 4 存档文件（缺少 DBPF 文件头）');
+    const count = dv.getUint32(36, true);
+    let pos = dv.getUint32(64, true);
+    if (!pos) pos = dv.getUint32(40, true);
+    const flags = dv.getUint32(pos, true);
+    let p = pos + 4;
+    let cType = 0, cGroup = 0, cInstEx = 0;
+    if (flags & 1) { cType = dv.getUint32(p, true); p += 4; }
+    if (flags & 2) { cGroup = dv.getUint32(p, true); p += 4; }
+    if (flags & 4) { cInstEx = dv.getUint32(p, true); p += 4; }
+    const entries = [];
+    for (let i = 0; i < count; i++) {
+      let type = cType, group = cGroup, instEx = cInstEx;
+      if (!(flags & 1)) { type = dv.getUint32(p, true); p += 4; }
+      if (!(flags & 2)) { group = dv.getUint32(p, true); p += 4; }
+      if (!(flags & 4)) { instEx = dv.getUint32(p, true); p += 4; }
+      const inst = dv.getUint32(p, true); p += 4;
+      const offset = dv.getUint32(p, true); p += 4;
+      let fileSize = dv.getUint32(p, true); p += 4;
+      const memSize = dv.getUint32(p, true); p += 4;
+      let comp = 0;
+      if (fileSize & 0x80000000) {
+        fileSize = fileSize & 0x7fffffff;
+        comp = dv.getUint16(p, true); p += 4;
+      }
+      entries.push({ type, group, instEx, inst, offset, fileSize, memSize, comp });
+    }
+    return entries;
+  }
+
+  // ---------- protobuf (lazy) ----------
+  function varint(buf, pos) {
+    let lo = 0, hi = 0, shift = 0, b;
+    do {
+      b = buf[pos++];
+      if (shift < 28) lo |= (b & 0x7f) << shift;
+      else if (shift === 28) { lo |= (b & 0x0f) << 28; hi |= (b & 0x7f) >> 4; }
+      else hi |= (b & 0x7f) << (shift - 32);
+      shift += 7;
+    } while (b & 0x80 && pos < buf.length);
+    return { lo: lo >>> 0, hi: hi >>> 0, pos };
+  }
+  function parse(buf, start = 0, end = buf.length) {
+    const f = new Map();
+    let pos = start;
+    while (pos < end) {
+      const t = varint(buf, pos); pos = t.pos;
+      const key = t.lo + t.hi * 4294967296;
+      const num = Math.floor(key / 8), wt = key & 7;
+      let e;
+      if (wt === 0) { const v = varint(buf, pos); e = { wt, lo: v.lo, hi: v.hi }; pos = v.pos; }
+      else if (wt === 1) { e = { wt, s: pos }; pos += 8; }
+      else if (wt === 2) { const l = varint(buf, pos); pos = l.pos; const len = l.lo + l.hi * 4294967296; e = { wt, s: pos, e: pos + len }; pos += len; }
+      else if (wt === 5) { e = { wt, s: pos }; pos += 4; }
+      else throw new Error('protobuf 解析失败 (wire type ' + wt + ')');
+      if (pos > end) throw new Error('protobuf 数据被截断');
+      if (!f.has(num)) f.set(num, []);
+      f.get(num).push(e);
+    }
+    return f;
+  }
+  const first = (m, n) => (m && m.get(n) ? m.get(n)[0] : undefined);
+  const all = (m, n) => (m && m.get(n)) || [];
+  function u64(buf, e) {
+    if (!e) return null;
+    let lo, hi;
+    if (e.wt === 0) { lo = e.lo; hi = e.hi; }
+    else if (e.wt === 1) {
+      lo = (buf[e.s] | buf[e.s + 1] << 8 | buf[e.s + 2] << 16 | buf[e.s + 3] << 24) >>> 0;
+      hi = (buf[e.s + 4] | buf[e.s + 5] << 8 | buf[e.s + 6] << 16 | buf[e.s + 7] << 24) >>> 0;
+    } else if (e.wt === 5) {
+      lo = (buf[e.s] | buf[e.s + 1] << 8 | buf[e.s + 2] << 16 | buf[e.s + 3] << 24) >>> 0; hi = 0;
+    } else return null;
+    return (BigInt(hi) << 32n | BigInt(lo)).toString();
+  }
+  const num = (buf, e) => { const v = u64(buf, e); return v === null ? null : Number(v); };
+  const td = new TextDecoder('utf-8');
+  const str = (buf, e) => (e && e.wt === 2 ? td.decode(buf.subarray(e.s, e.e)) : '');
+  const sub = (buf, e) => (e && e.wt === 2 ? parse(buf, e.s, e.e) : null);
+
+  // ---------- inflate ----------
+  async function inflate(bytes) {
+    if (typeof DecompressionStream !== 'undefined') {
+      const fmt = bytes[0] === 0x78 ? 'deflate' : 'deflate-raw';
+      const ds = new DecompressionStream(fmt);
+      const out = new Blob([bytes]).stream().pipeThrough(ds);
+      return new Uint8Array(await new Response(out).arrayBuffer());
+    }
+    const zlib = require('zlib');
+    return new Uint8Array(bytes[0] === 0x78 ? zlib.inflateSync(bytes) : zlib.inflateRawSync(bytes));
+  }
+
+  async function extractSaveData(file) {
+    const entries = readDbpf(file);
+    const get = async (en) => {
+      const raw = file.subarray(en.offset, en.offset + en.fileSize);
+      if (en.comp === 0x5A42) return inflate(raw);
+      if (en.comp === 0) return raw;
+      return null;
+    };
+    const exact = entries.filter(e => e.type === SAVE_TYPE);
+    const tryList = exact.length ? exact : entries.slice().sort((a, b) => b.memSize - a.memSize).slice(0, 5);
+    for (const en of tryList) {
+      const data = await get(en);
+      if (!data) continue;
+      try { const top = parse(data); if (all(top, 6).length) return { data, top }; } catch (e) { /* try next */ }
+    }
+    throw new Error('在存档里没有找到小人数据');
+  }
+
+  // ---------- model ----------
+  const GENDER = { 4096: 'M', 8192: 'F' };
+  const AGE = { 1: '新生儿', 128: '婴儿', 2: '幼儿', 4: '儿童', 8: '青少年', 16: '青年', 32: '成年', 64: '老年' };
+
+  async function load(fileBytes, log = () => {}) {
+    log('正在读取存档结构…');
+    const { data: b, top } = await extractSaveData(fileBytes);
+    log('正在解析小人…');
+    const sims = new Map();     // id -> sim
+    const households = new Map();
+    for (const he of all(top, 5)) {
+      const h = sub(b, he);
+      households.set(u64(b, first(h, 2)), str(b, first(h, 3)));
+    }
+    for (const se of all(top, 6)) {
+      const s = sub(b, se);
+      const id = u64(b, first(s, 1));
+      if (!id) continue;
+      const attrs = sub(b, first(s, 30)) || sub(b, first(s, 17));
+      const sim = {
+        id,
+        first: str(b, first(s, 5)),
+        last: str(b, first(s, 6)),
+        sex: GENDER[num(b, first(s, 7))] || 'U',
+        age: AGE[num(b, first(s, 8))] || '',
+        householdId: u64(b, first(s, 4)),
+        household: str(b, first(s, 22)),
+        spouse: u64(b, first(s, 15)),
+        fiance: u64(b, first(s, 68)),
+        species: num(b, first(s, 60)) || 1,
+        dead: false, deathType: 0,
+        rel: {},   // relation_type -> sim id
+        inSave: true,
+      };
+      if (!sim.household && sim.householdId) sim.household = households.get(sim.householdId) || '';
+      if (sim.spouse === '0') sim.spouse = null;
+      if (sim.fiance === '0') sim.fiance = null;
+      if (attrs) {
+        const death = sub(b, first(attrs, 7));
+        if (death) { sim.deathType = num(b, first(death, 1)) || 0; sim.dead = sim.deathType > 0; }
+        const gen = sub(b, first(attrs, 14));
+        for (const fe of all(gen, 1)) {
+          const fr = sub(b, fe);
+          const t = num(b, first(fr, 1)) || 0;
+          const rid = u64(b, first(fr, 2));
+          if (rid && rid !== '0') sim.rel[t] = rid;
+        }
+      }
+      sims.set(id, sim);
+    }
+
+    // relgraph: keeps names of sims removed from the save
+    log('正在读取家族关系图…');
+    const graph = { nodes: new Map(), edges: [] };
+    const rg = sub(b, first(top, 16));
+    if (rg) {
+      let gd = rg;
+      const f1 = all(rg, 1);
+      if (f1.length === 1 && f1[0].wt === 2) {
+        try { const inner = sub(b, f1[0]); const g1 = all(inner, 1); if (g1.length && g1[0].wt === 2) gd = inner; } catch (e) { /* not a wrapper */ }
+      }
+      for (const ne of all(gd, 1)) {
+        let n; try { n = sub(b, ne); } catch (e) { continue; }
+        const nodeId = u64(b, first(n, 1)); const sid = u64(b, first(n, 2));
+        if (!nodeId || !sid) continue;
+        graph.nodes.set(nodeId, { simId: sid, first: str(b, first(n, 4)), last: str(b, first(n, 5)), genus: num(b, first(n, 3)) });
+        for (const ee of all(n, 6)) {
+          const ed = sub(b, ee);
+          graph.edges.push({ from: nodeId, to: u64(b, first(ed, 1)), data: u64(b, first(ed, 2)) });
+        }
+      }
+    }
+    return build(sims, graph, log);
+  }
+
+  function build(sims, graph, log) {
+    const people = new Map(sims);
+    const placeholder = (id, extra = {}) => {
+      if (!people.has(id)) people.set(id, Object.assign({ id, first: '', last: '', sex: 'U', age: '', dead: false, rel: {}, inSave: false, species: 1, household: '' }, extra));
+      return people.get(id);
+    };
+    // names of removed sims from relgraph
+    const graphNameBySim = new Map();
+    for (const n of graph.nodes.values()) graphNameBySim.set(n.simId, n);
+
+    // parents
+    const parents = new Map(); // child -> {M, F}
+    const setParent = (child, pid, role) => {
+      if (!pid || pid === child) return;
+      const p = parents.get(child) || {}; if (!p[role]) p[role] = pid; parents.set(child, p);
+    };
+    for (const s of sims.values()) {
+      setParent(s.id, s.rel[0], 'M'); setParent(s.id, s.rel[1], 'F');
+    }
+    // grandparents attach to parents that are not in the save
+    for (const s of sims.values()) {
+      const m = s.rel[0], f = s.rel[1];
+      if (m && !sims.has(m)) { setParent(m, s.rel[2], 'M'); setParent(m, s.rel[3], 'F'); }
+      if (f && !sims.has(f)) { setParent(f, s.rel[4], 'M'); setParent(f, s.rel[5], 'F'); }
+    }
+    // spouses
+    const spouses = new Set();
+    const addSpouse = (a, c) => { if (a && c && a !== c) spouses.add(a < c ? a + '|' + c : c + '|' + a); };
+    for (const s of sims.values()) if (s.spouse) addSpouse(s.id, s.spouse);
+
+    // learn relgraph edge meaning from sims we already know, then apply to removed sims
+    const learned = {};
+    if (graph.edges.length) {
+      const nodeSim = (nid) => (graph.nodes.get(nid) || {}).simId;
+      const isParent = (p, c) => { const x = parents.get(c); return !!x && (x.M === p || x.F === p); };
+      const stats = {};
+      for (const e of graph.edges) {
+        const a = nodeSim(e.from), c = nodeSim(e.to);
+        if (!a || !c || !sims.has(a) || !sims.has(c)) continue;
+        const st = stats[e.data] || (stats[e.data] = { parentOf: 0, childOf: 0, spouse: 0, n: 0 });
+        st.n++;
+        if (isParent(a, c)) st.parentOf++;
+        if (isParent(c, a)) st.childOf++;
+        if (spouses.has(a < c ? a + '|' + c : c + '|' + a)) st.spouse++;
+      }
+      for (const [k, st] of Object.entries(stats)) {
+        for (const r of ['parentOf', 'childOf', 'spouse']) if (st.n >= 2 && st[r] / st.n >= 0.8) learned[k] = r;
+      }
+      let added = 0;
+      for (const e of graph.edges) {
+        const r = learned[e.data]; if (!r) continue;
+        const a = nodeSim(e.from), c = nodeSim(e.to); if (!a || !c) continue;
+        if (sims.has(a) && sims.has(c)) continue;
+        const before = parents.size + spouses.size;
+        if (r === 'spouse') addSpouse(a, c);
+        else {
+          const [par, ch] = r === 'parentOf' ? [a, c] : [c, a];
+          const pn = people.get(par) || graphNameBySim.get(par);
+          const sex = pn && pn.sex;
+          const cur = parents.get(ch) || {};
+          if (cur.M === par || cur.F === par) continue;
+          if (sex === 'F' || (!sex && !cur.M)) setParent(ch, par, cur.M ? 'F' : 'M');
+          else setParent(ch, par, cur.F ? 'M' : 'F');
+        }
+        if (parents.size + spouses.size > before) added++;
+      }
+      log && log('关系图补充了 ' + added + ' 条关系');
+    }
+
+    // placeholders for everyone referenced but missing
+    const ensure = (id, sexHint) => {
+      const p = placeholder(id);
+      if (!p.inSave) {
+        const g = graphNameBySim.get(id);
+        if (g && !p.first) { p.first = g.first; p.last = g.last; p.removed = true; }
+        if (p.sex === 'U' && sexHint) p.sex = sexHint;
+      }
+    };
+    for (const [c, p] of parents) { ensure(c); if (p.M) ensure(p.M, 'F'); if (p.F) ensure(p.F, 'M'); }
+    for (const k of spouses) { const [a, c] = k.split('|'); ensure(a); ensure(c); }
+    // mother/father slots: fix by sex when the game stored them oddly
+    for (const [c, p] of parents) {
+      const m = p.M && people.get(p.M), f = p.F && people.get(p.F);
+      if (m && m.sex === 'M' && (!f || f.sex !== 'M')) { parents.set(c, { M: p.F, F: p.M }); }
+    }
+    return { people, parents, spouses, learned, graphNodes: graph.nodes.size, graphEdges: graph.edges.length };
+  }
+
+  // ---------- selection ----------
+  function components(model, ids) {
+    const adj = new Map(); const link = (a, c) => { if (!ids.has(a) || !ids.has(c)) return; (adj.get(a) || adj.set(a, []).get(a)).push(c); (adj.get(c) || adj.set(c, []).get(c)).push(a); };
+    for (const [c, p] of model.parents) { if (p.M) link(c, p.M); if (p.F) link(c, p.F); }
+    for (const k of model.spouses) { const [a, c] = k.split('|'); link(a, c); }
+    const comp = new Map(); let n = 0;
+    for (const id of ids) {
+      if (comp.has(id)) continue;
+      const stack = [id]; comp.set(id, n);
+      while (stack.length) { const x = stack.pop(); for (const y of adj.get(x) || []) if (!comp.has(y)) { comp.set(y, n); stack.push(y); } }
+      n++;
+    }
+    return { comp, adj };
+  }
+
+  function select(model, opts) {
+    const ids = new Set();
+    for (const p of model.people.values()) {
+      if (!opts.pets && p.species && p.species !== 1) continue;
+      if (!opts.removed && !p.inSave) continue;
+      ids.add(p.id);
+    }
+    const { comp, adj } = components(model, ids);
+    let keep;
+    if (opts.rootId) { const c = comp.get(opts.rootId); keep = new Set([...ids].filter(i => comp.get(i) === c)); }
+    else if (opts.scope === 'all') keep = ids;
+    else keep = new Set([...ids].filter(i => (adj.get(i) || []).length > 0));
+    return keep;
+  }
+
+  // ---------- GEDCOM ----------
+  function gedcom(model, keep, meta = {}) {
+    const P = model.people;
+    const iid = new Map(); let i = 0;
+    const sorted = [...keep].sort((a, b) => {
+      const x = P.get(a), y = P.get(b);
+      return (x.last || '~').localeCompare(y.last || '~') || (x.first || '~').localeCompare(y.first || '~');
+    });
+    for (const id of sorted) iid.set(id, '@I' + (++i) + '@');
+    const fams = new Map(); // key -> {h, w, kids:[], marr}
+    const famKey = (a, c) => [a || '', c || ''].sort().join('|');
+    const getFam = (a, c) => { const k = famKey(a, c); if (!fams.has(k)) fams.set(k, { a, c, kids: [], marr: false }); return fams.get(k); };
+    for (const [c, p] of model.parents) {
+      if (!keep.has(c)) continue;
+      const m = keep.has(p.M) ? p.M : null, f = keep.has(p.F) ? p.F : null;
+      if (!m && !f) continue;
+      getFam(m, f).kids.push(c);
+    }
+    for (const k of model.spouses) {
+      const [a, c] = k.split('|'); if (!keep.has(a) || !keep.has(c)) continue;
+      getFam(a, c).marr = true;
+    }
+    const fid = new Map(); let j = 0; const famc = new Map(), fams_ = new Map();
+    const push = (m, k, v) => (m.get(k) || m.set(k, []).get(k)).push(v);
+    for (const [k, f] of fams) {
+      const id = '@F' + (++j) + '@'; fid.set(k, id);
+      for (const x of [f.a, f.c]) if (x) push(fams_, x, id);
+      for (const kid of f.kids) push(famc, kid, id);
+    }
+    const esc = s => (s || '').replace(/[\r\n]+/g, ' ').replace(/@/g, '@@').replace(/\//g, '');
+    const L = [];
+    L.push('0 HEAD', '1 SOUR SIMS4GED', '2 NAME Sims 4 GEDCOM Export', '2 VERS 1.0', '1 DATE ' + gedDate(new Date()),
+      '1 GEDC', '2 VERS 5.5.1', '2 FORM LINEAGE-LINKED', '1 CHAR UTF-8', '1 SUBM @U1@');
+    if (meta.file) L.push('1 FILE ' + esc(meta.file));
+    L.push('0 @U1@ SUBM', '1 NAME Sims 4 GEDCOM Export');
+    for (const id of sorted) {
+      const p = P.get(id);
+      const given = esc(p.first) || (p.inSave ? '' : '未知');
+      L.push('0 ' + iid.get(id) + ' INDI');
+      L.push('1 NAME ' + given + ' /' + esc(p.last) + '/');
+      if (given) L.push('2 GIVN ' + given);
+      if (p.last) L.push('2 SURN ' + esc(p.last));
+      L.push('1 SEX ' + (p.sex || 'U'));
+      if (p.dead) L.push('1 DEAT Y');
+      const notes = [];
+      if (p.age) notes.push('年龄段: ' + p.age);
+      if (p.household) notes.push('家庭: ' + esc(p.household));
+      if (p.species && p.species !== 1) notes.push('宠物');
+      if (!p.inSave) notes.push(p.removed ? '已被游戏从存档中清除，名字来自关系图' : '已被游戏从存档中清除');
+      notes.push('Sim ID: ' + id);
+      L.push('1 NOTE ' + notes[0]);
+      for (const n of notes.slice(1)) L.push('2 CONT ' + n);
+      for (const f of famc.get(id) || []) L.push('1 FAMC ' + f);
+      for (const f of fams_.get(id) || []) L.push('1 FAMS ' + f);
+    }
+    for (const [k, f] of fams) {
+      L.push('0 ' + fid.get(k) + ' FAM');
+      let h = f.a, w = f.c;
+      const sa = h && P.get(h).sex, sc = w && P.get(w).sex;
+      if (sa === 'F' || sc === 'M') [h, w] = [w, h];
+      if (!h && w && P.get(w).sex === 'M') [h, w] = [w, h];
+      if (!w && h && P.get(h).sex === 'F') [h, w] = [w, h];
+      if (h) L.push('1 HUSB ' + iid.get(h));
+      if (w) L.push('1 WIFE ' + iid.get(w));
+      if (f.marr) L.push('1 MARR Y');
+      for (const kid of f.kids) L.push('1 CHIL ' + iid.get(kid));
+    }
+    L.push('0 TRLR');
+    return '﻿' + L.join('\r\n') + '\r\n';
+  }
+  function gedDate(d) {
+    const M = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    return d.getDate() + ' ' + M[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  return { load, select, gedcom, components, _parse: parse };
+})();
+
+
+</script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let model = null, fileName = '', rootId = null;
+  const status = (msg, err) => { $('status').textContent = msg; $('status').className = 'status' + (err ? ' err' : ''); };
+  const nameOf = (p) => p ? ((p.first || '') + ' ' + (p.last || '')).trim() || (p.inSave ? '(无名)' : '未知') : '';
+  const sexLabel = { M: '男', F: '女', U: '' };
+
+  $('drop').onclick = () => $('file').click();
+  $('file').onchange = (e) => e.target.files[0] && handle(e.target.files[0]);
+  ['dragover', 'dragenter'].forEach(t => $('drop').addEventListener(t, (e) => { e.preventDefault(); $('drop').classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(t => $('drop').addEventListener(t, (e) => { e.preventDefault(); $('drop').classList.remove('over'); }));
+  $('drop').addEventListener('drop', (e) => e.dataTransfer.files[0] && handle(e.dataTransfer.files[0]));
+
+  async function handle(file) {
+    fileName = file.name.replace(/\.[^.]+$/, '');
+    $('result').classList.add('hidden');
+    status('正在读取 ' + file.name + '…');
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      model = await S4G.load(buf, (m) => status(m));
+      rootId = null; $('chosen').innerHTML = '';
+      showStats();
+      refresh();
+      $('result').classList.remove('hidden');
+      indexModel(); zoom = 1; focusId = pickDefaultFocus(); renderTree();
+      status('读取完成：' + file.name);
+    } catch (err) {
+      console.error(err);
+      status('读取失败：' + err.message, true);
+    }
+  }
+
+  function showStats() {
+    const P = [...model.people.values()];
+    const inSave = P.filter(p => p.inSave);
+    const items = [
+      [inSave.length, '存档中的小人'],
+      [model.parents.size, '有父母记录'],
+      [model.spouses.size, '对配偶'],
+      [inSave.filter(p => p.dead).length, '已去世'],
+      [P.filter(p => !p.inSave).length, '已被清除的祖先'],
+    ];
+    $('stats').innerHTML = items.map(([n, l]) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
+  }
+
+  function opts() {
+    const scope = document.querySelector('input[name=scope]:checked').value;
+    return { scope, rootId: scope === 'family' ? rootId : null, removed: $('optRemoved').checked, pets: $('optPets').checked };
+  }
+
+  function current() {
+    const o = opts();
+    if (o.scope === 'family' && !o.rootId) return new Set();
+    return S4G.select(model, o);
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+  function refresh() {
+    if (!model) return;
+    $('familyBox').classList.toggle('hidden', opts().scope !== 'family');
+    const keep = current();
+    const P = model.people;
+    const spouseOf = new Map();
+    for (const k of model.spouses) { const [a, c] = k.split('|'); spouseOf.set(a, c); spouseOf.set(c, a); }
+    const rows = [...keep].map(id => P.get(id)).sort((a, b) => (a.last || '~').localeCompare(b.last || '~') || (a.first || '~').localeCompare(b.first || '~'));
+    $('tbody').innerHTML = rows.slice(0, 1500).map(p => {
+      const par = model.parents.get(p.id) || {};
+      const ps = [par.F, par.M].filter(Boolean).map(i => esc(nameOf(P.get(i)))).join('，');
+      const sp = spouseOf.get(p.id);
+      const st = !p.inSave ? '<span class="tag gone">已清除</span>' : p.dead ? '<span class="tag dead">已去世</span>' : '<span class="tag">在世</span>';
+      return `<tr><td><span class="namelink" data-focus="${p.id}">${esc(nameOf(p))}</span></td><td>${sexLabel[p.sex] || ''}</td><td>${esc(p.age || '')}</td><td>${st}</td><td>${ps}</td><td>${sp ? esc(nameOf(P.get(sp))) : ''}</td></tr>`;
+    }).join('') + (rows.length > 1500 ? `<tr><td colspan="6">预览只显示前 1500 人，导出文件包含全部 ${rows.length} 人</td></tr>` : '');
+    const fams = new Set();
+    for (const [c, p] of model.parents) if (keep.has(c)) fams.add([p.M, p.F].filter(x => keep.has(x)).sort().join('|'));
+    for (const k of model.spouses) { const [a, c] = k.split('|'); if (keep.has(a) && keep.has(c)) fams.add([a, c].sort().join('|')); }
+    fams.delete('');
+    $('summary').textContent = keep.size ? `将导出 ${keep.size} 人，${fams.size} 个家庭` : (opts().scope === 'family' ? '请先搜索并选择一个小人' : '没有可导出的小人');
+    $('dl').disabled = !keep.size;
+  }
+
+  document.querySelectorAll('input[name=scope], #optRemoved, #optPets').forEach(el => el.addEventListener('change', refresh));
+
+  $('search').addEventListener('input', () => {
+    const q = $('search').value.trim().toLowerCase();
+    const box = $('pick');
+    if (!q) { box.style.display = 'none'; return; }
+    const hits = [...model.people.values()].filter(p => nameOf(p).toLowerCase().includes(q)).slice(0, 40);
+    box.innerHTML = hits.map(p => `<div data-id="${p.id}">${esc(nameOf(p))} <span style="color:var(--muted);font-size:12px">${esc([p.age, p.household].filter(Boolean).join(' · '))}</span></div>`).join('') || '<div style="cursor:default;color:var(--muted)">没有找到</div>';
+    box.style.display = 'block';
+  });
+  $('pick').addEventListener('click', (e) => {
+    const d = e.target.closest('[data-id]'); if (!d) return;
+    rootId = d.dataset.id;
+    $('pick').style.display = 'none'; $('search').value = '';
+    $('chosen').innerHTML = `已选择：<b>${esc(nameOf(model.people.get(rootId)))}</b> <button class="ghost" id="clr">清除</button>`;
+    $('clr').onclick = () => { rootId = null; $('chosen').innerHTML = ''; refresh(); };
+    refresh();
+  });
+
+
+  // ================= family tree viewer =================
+  let focusId = null, zoom = 1;
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const CW = 150, CH = 52, HG = 18, VG = 58;
+  let kids = new Map(), spouseMap = new Map();
+  function indexModel() {
+    kids = new Map(); spouseMap = new Map();
+    for (const [c, p] of model.parents) for (const x of [p.M, p.F]) if (x) (kids.get(x) || kids.set(x, []).get(x)).push(c);
+    for (const k of model.spouses) { const [a, c] = k.split('|'); (spouseMap.get(a) || spouseMap.set(a, new Set()).get(a)).add(c); (spouseMap.get(c) || spouseMap.set(c, new Set()).get(c)).add(a); }
+  }
+  const visible = (id) => { const p = model.people.get(id); if (!p) return false; if (!$('optPets').checked && p.species && p.species !== 1) return false; if (!$('optRemoved').checked && !p.inSave) return false; return true; };
+  const childrenOf = (id) => (kids.get(id) || []).filter(visible);
+  const parentsOf = (id) => { const p = model.parents.get(id) || {}; return { F: visible(p.F) ? p.F : null, M: visible(p.M) ? p.M : null }; };
+  function partnersOf(id) {
+    const s = new Set([...(spouseMap.get(id) || [])].filter(visible));
+    for (const c of childrenOf(id)) { const p = model.parents.get(c) || {}; for (const x of [p.M, p.F]) if (x && x !== id && visible(x)) s.add(x); }
+    return [...s];
+  }
+  function pickDefaultFocus() {
+    let best = null, score = -1;
+    for (const p of model.people.values()) {
+      if (!p.inSave || !visible(p.id)) continue;
+      const pr = parentsOf(p.id);
+      const s = childrenOf(p.id).length * 2 + (pr.F ? 1 : 0) + (pr.M ? 1 : 0) + partnersOf(p.id).length + (p.dead ? 0 : 0.5);
+      if (s > score) { score = s; best = p.id; }
+    }
+    return best;
+  }
+  const widthOfText = (s) => [...s].reduce((n, ch) => n + (ch.charCodeAt(0) > 0x2e80 ? 2 : 1.1), 0);
+  const clip = (s, max) => { if (widthOfText(s) <= max) return s; let o = ''; for (const ch of s) { if (widthOfText(o + ch) > max - 2) break; o += ch; } return o + '…'; };
+
+  function renderTree() {
+    const wrap = $('treewrap');
+    if (!model || !focusId || !visible(focusId)) { wrap.innerHTML = '<div style="padding:20px;color:var(--muted)">没有可显示的小人</div>'; return; }
+    const ancDepth = (id, g) => { if (g > +$('upGen').value) return g - 1; const pr = parentsOf(id); if (!pr.F && !pr.M) return g - 1; return Math.max(pr.F ? ancDepth(pr.F, g + 1) : g, pr.M ? ancDepth(pr.M, g + 1) : g); };
+    const UP = ancDepth(focusId, 1), DOWN = +$('downGen').value;
+    const cards = [], lines = [];
+    const rowY = (r) => (r + UP) * (CH + VG);
+    const unitW = (n) => n * CW + (n - 1) * HG;
+
+    // descendants: measure then place
+    function measure(id, depth) {
+      const parts = partnersOf(id);
+      const own = unitW(1 + parts.length);
+      if (depth >= DOWN) return { id, parts, own, w: own, kids: [] };
+      const order = new Map(parts.map((x, i) => [x, i]));
+      const ch = childrenOf(id).slice().sort((a, b) => {
+        const pa = model.parents.get(a), pb = model.parents.get(b);
+        const oa = order.get(pa.M === id ? pa.F : pa.M) ?? 99, ob = order.get(pb.M === id ? pb.F : pb.M) ?? 99;
+        return oa - ob;
+      }).map(c => measure(c, depth + 1));
+      const cw = ch.reduce((s, c) => s + c.w, 0) + Math.max(0, ch.length - 1) * HG * 2;
+      return { id, parts, own, w: Math.max(own, cw), kids: ch };
+    }
+    function place(node, left, row, isFocus) {
+      const unitLeft = left + (node.w - node.own) / 2;
+      const ids = [node.id, ...node.parts];
+      const pos = {};
+      ids.forEach((x, i) => { pos[x] = unitLeft + i * (CW + HG); cards.push({ id: x, x: pos[x], y: rowY(row), focus: isFocus && i === 0, ext: i > 0 }); });
+      for (let i = 1; i < ids.length; i++) {
+        const married = (spouseMap.get(node.id) || new Set()).has(ids[i]);
+        lines.push({ d: `M${pos[node.id] + CW} ${rowY(row) + CH / 2}H${pos[ids[i]]}`, dash: !married });
+      }
+      // hidden deeper generations badge
+      if (!node.kids.length && childrenOf(node.id).length && row >= DOWN) cards[cards.length - ids.length].more = childrenOf(node.id).length;
+      let x = left + (node.w - (node.kids.reduce((s, c) => s + c.w, 0) + Math.max(0, node.kids.length - 1) * HG * 2)) / 2;
+      for (const k of node.kids) {
+        const kc = place(k, x, row + 1, false);
+        const p = model.parents.get(k.id) || {};
+        const other = p.M === node.id ? p.F : p.M;
+        const from = other && pos[other] !== undefined
+          ? (Math.min(pos[node.id], pos[other]) + Math.max(pos[node.id], pos[other]) + CW) / 2
+          : pos[node.id] + CW / 2;
+        const midY = rowY(row) + CH + VG / 2;
+        const fy = other && pos[other] !== undefined ? rowY(row) + CH / 2 : rowY(row) + CH;
+        lines.push({ d: `M${from} ${fy}V${midY}H${kc + CW / 2}V${rowY(row + 1)}` });
+        x += k.w + HG * 2;
+      }
+      return pos[node.id];
+    }
+    const tree = measure(focusId, 0);
+    const fx = place(tree, 0, 0, true);
+
+    // siblings to the left of the focus unit
+    const fp = model.parents.get(focusId) || {};
+    const sibs = [...new Set([...(fp.M ? kids.get(fp.M) || [] : []), ...(fp.F ? kids.get(fp.F) || [] : [])])].filter(s => s !== focusId && visible(s));
+    const descLeft = Math.min(...cards.map(c => c.x));
+    let sx = Math.min(fx - (CW + HG) * sibs.length, descLeft - (CW + HG) * sibs.length);
+    const sibX = {};
+    if (sibs.length && sx + (CW + HG) * sibs.length > fx) sx = fx - (CW + HG) * sibs.length;
+    sibs.forEach((s, i) => { sibX[s] = sx + i * (CW + HG); cards.push({ id: s, x: sibX[s], y: rowY(0), sib: true }); });
+
+    // ancestors (pedigree)
+    function anc(id, x, gen) {
+      if (gen > UP) return;
+      const pr = parentsOf(id);
+      if (!pr.F && !pr.M) return;
+      const span = (CW + HG) * Math.pow(2, UP - gen) / 2;
+      const px = { F: x - span, M: x + span };
+      const childY = rowY(-gen + 1), y = rowY(-gen);
+      for (const r of ['F', 'M']) if (pr[r]) cards.push({ id: pr[r], x: px[r], y, anc: true });
+      let cx = x + CW / 2;
+      if (pr.F && pr.M) {
+        const married = (spouseMap.get(pr.F) || new Set()).has(pr.M);
+        lines.push({ d: `M${px.F + CW} ${y + CH / 2}H${px.M}`, dash: !married });
+      } else cx = (pr.F ? px.F : px.M) + CW / 2;
+      const midY = y + CH + VG / 2;
+      const startY = pr.F && pr.M ? y + CH / 2 : y + CH;
+      if (gen === 1) {
+        const targets = [x, ...sibs.map(s => sibX[s])];
+        lines.push({ d: `M${cx} ${startY}V${midY}` });
+        const lo = Math.min(cx, ...targets.map(t => t + CW / 2)), hi = Math.max(cx, ...targets.map(t => t + CW / 2));
+        lines.push({ d: `M${lo} ${midY}H${hi}` });
+        for (const t of targets) lines.push({ d: `M${t + CW / 2} ${midY}V${childY}` });
+      } else lines.push({ d: `M${cx} ${startY}V${midY}H${x + CW / 2}V${childY}` });
+      for (const r of ['F', 'M']) if (pr[r]) anc(pr[r], px[r], gen + 1);
+    }
+    anc(focusId, fx, 1);
+
+    // draw
+    const xs = cards.map(c => c.x), ys = cards.map(c => c.y);
+    const minX = Math.min(...xs) - 30, maxX = Math.max(...xs) + CW + 30, minY = Math.min(...ys) - 30, maxY = Math.max(...ys) + CH + 30;
+    const W = maxX - minX, H = maxY - minY;
+    const svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', `${minX} ${minY} ${W} ${H}`);
+    svg.setAttribute('width', W * zoom); svg.setAttribute('height', H * zoom);
+    const css = getComputedStyle(document.documentElement);
+    const col = (v) => css.getPropertyValue(v).trim();
+    let html = '';
+    for (const l of lines) html += `<path d="${l.d}" fill="none" stroke="${col('--muted')}" stroke-width="1.4" ${l.dash ? 'stroke-dasharray="4 4"' : ''} opacity=".7"/>`;
+    for (const c of cards) {
+      const p = model.people.get(c.id);
+      const sexCol = p.sex === 'M' ? '#5b8fd6' : p.sex === 'F' ? '#d6739a' : col('--muted');
+      const fill = c.focus ? col('--soft') : col('--card');
+      const stroke = c.focus ? col('--accent') : col('--line');
+      const sub = [p.age, !p.inSave ? '已清除' : p.dead ? '已去世' : ''].filter(Boolean).join(' · ');
+      const op = p.dead || !p.inSave ? 0.75 : 1;
+      html += `<g class="tc" data-id="${c.id}" style="cursor:pointer" opacity="${op}">
+        <rect x="${c.x}" y="${c.y}" width="${CW}" height="${CH}" rx="9" fill="${fill}" stroke="${stroke}" stroke-width="${c.focus ? 2.2 : 1.2}" ${!p.inSave ? 'stroke-dasharray="5 4"' : ''}/>
+        <rect x="${c.x}" y="${c.y + 8}" width="4" height="${CH - 16}" rx="2" fill="${p.dead ? col('--dead') : sexCol}"/>
+        <text x="${c.x + 14}" y="${c.y + 22}" font-size="13.5" font-weight="${c.focus ? 700 : 600}" fill="${col('--ink')}">${esc(clip(nameOf(p), 19))}${p.dead ? ' ✝' : ''}</text>
+        <text x="${c.x + 14}" y="${c.y + 40}" font-size="11.5" fill="${col('--muted')}">${esc(sub)}</text>
+        ${c.more ? `<text x="${c.x + CW - 10}" y="${c.y + 40}" font-size="11" text-anchor="end" fill="${col('--accent')}">+${c.more} 子女</text>` : ''}
+        <title>${esc(nameOf(p))}${p.household ? '\n家庭: ' + esc(p.household) : ''}</title></g>`;
+    }
+    svg.innerHTML = html;
+    wrap.innerHTML = ''; wrap.appendChild(svg);
+    // centre on focus
+    const fc = cards.find(c => c.focus);
+    wrap.scrollLeft = (fc.x - minX + CW / 2) * zoom - wrap.clientWidth / 2;
+    wrap.scrollTop = (fc.y - minY + CH / 2) * zoom - wrap.clientHeight / 2;
+  }
+
+  function setFocus(id) { focusId = id; renderTree(); }
+  $('treewrap').addEventListener('click', (e) => {
+    if (dragMoved) return;
+    const g = e.target.closest('.tc'); if (g) setFocus(g.dataset.id);
+  });
+  let dragging = false, dragMoved = false, sx0, sy0, sl0, st0;
+  $('treewrap').addEventListener('mousedown', (e) => { dragging = true; dragMoved = false; sx0 = e.clientX; sy0 = e.clientY; sl0 = $('treewrap').scrollLeft; st0 = $('treewrap').scrollTop; });
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - sx0, dy = e.clientY - sy0;
+    if (Math.abs(dx) + Math.abs(dy) > 4) { dragMoved = true; $('treewrap').classList.add('drag'); }
+    $('treewrap').scrollLeft = sl0 - dx; $('treewrap').scrollTop = st0 - dy;
+  });
+  window.addEventListener('mouseup', () => { dragging = false; $('treewrap').classList.remove('drag'); setTimeout(() => { dragMoved = false; }, 0); });
+  $('zin').onclick = () => { zoom = Math.min(2.5, zoom * 1.25); renderTree(); };
+  $('zout').onclick = () => { zoom = Math.max(0.3, zoom / 1.25); renderTree(); };
+  $('zfit').onclick = () => { zoom = 1; renderTree(); };
+  $('upGen').onchange = renderTree; $('downGen').onchange = renderTree;
+  ['optPets', 'optRemoved'].forEach(id => $(id).addEventListener('change', () => { if (focusId && !visible(focusId)) focusId = pickDefaultFocus(); renderTree(); }));
+  $('tsearch').addEventListener('input', () => {
+    const q = $('tsearch').value.trim().toLowerCase();
+    const box = $('tpick');
+    if (!q) { box.style.display = 'none'; return; }
+    const hits = [...model.people.values()].filter(p => visible(p.id) && nameOf(p).toLowerCase().includes(q)).slice(0, 40);
+    box.innerHTML = hits.map(p => `<div data-id="${p.id}">${esc(nameOf(p))} <span style="color:var(--muted);font-size:12px">${esc([p.age, p.household].filter(Boolean).join(' · '))}</span></div>`).join('') || '<div style="cursor:default;color:var(--muted)">没有找到</div>';
+    box.style.display = 'block';
+  });
+  $('tpick').addEventListener('click', (e) => {
+    const d = e.target.closest('[data-id]'); if (!d) return;
+    $('tpick').style.display = 'none'; $('tsearch').value = '';
+    setFocus(d.dataset.id);
+  });
+  $('tbody').addEventListener('click', (e) => {
+    const s = e.target.closest('[data-focus]'); if (!s) return;
+    setFocus(s.dataset.focus);
+    $('treeCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // minimal stored zip (used where only .zip downloads are allowed)
+  const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  function zip(name, bytes) {
+    let crc = 0xFFFFFFFF; for (const b of bytes) crc = crcT[(crc ^ b) & 0xFF] ^ (crc >>> 8); crc = (crc ^ 0xFFFFFFFF) >>> 0;
+    const nm = new TextEncoder().encode(name);
+    const loc = new DataView(new ArrayBuffer(30)); loc.setUint32(0, 0x04034b50, true); loc.setUint16(4, 20, true); loc.setUint16(6, 0x0800, true);
+    loc.setUint32(14, crc, true); loc.setUint32(18, bytes.length, true); loc.setUint32(22, bytes.length, true); loc.setUint16(26, nm.length, true);
+    const cen = new DataView(new ArrayBuffer(46)); cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
+    cen.setUint32(16, crc, true); cen.setUint32(20, bytes.length, true); cen.setUint32(24, bytes.length, true); cen.setUint16(28, nm.length, true);
+    const locLen = 30 + nm.length + bytes.length;
+    const end = new DataView(new ArrayBuffer(22)); end.setUint32(0, 0x06054b50, true); end.setUint16(8, 1, true); end.setUint16(10, 1, true);
+    end.setUint32(12, 46 + nm.length, true); end.setUint32(16, locLen, true);
+    return new Blob([loc, nm, bytes, cen, nm, end]);
+  }
+
+  let downloads = null;
+  if (window.claude && window.claude.use) window.claude.use('downloads').then(d => { downloads = d; }).catch(() => {});
+
+  $('dl').onclick = async () => {
+    const keep = current();
+    const text = S4G.gedcom(model, keep, { file: fileName });
+    let base = fileName || 'sims4';
+    if (opts().scope === 'family' && rootId) base += '_' + (model.people.get(rootId).last || 'family');
+    if (downloads) {
+      try {
+        await downloads.save({ filename: base + '.zip', data: zip(base + '.ged', new TextEncoder().encode(text)) });
+        status('已保存 ' + base + '.zip，解压后就是 ' + base + '.ged');
+      } catch (e) {
+        if (e && e.code !== 'declined') status('保存失败：' + (e.message || e.code), true);
+      }
+      return;
+    }
+    const a = document.createElement('a');
+    a.download = base + '.ged';
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+})();
+</script>
+</body>
+</html>
