@@ -6,31 +6,34 @@
 <title>Sims 4 族谱导出 GEDCOM</title>
 <style>
   :root {
-    --bg: #f6f4ef; --card: #fffdf8; --ink: #23302a; --muted: #6b766f; --line: #e3ded2;
-    --accent: #2f7d5b; --accent-ink: #fff; --soft: #e7f2ec; --warn: #a2551c; --dead: #8a8f99;
+    --bg: #d9ecfa; --card: #ffffff; --ink: #183a5c; --muted: #5b7899; --line: #c3dbf0;
+    --accent: #4fae2e; --accent-ink: #fff; --soft: #e8f4fd; --warn: #c2541b; --dead: #8b97a6;
+    --blue: #1f7fd4; --blue2: #0f5fae; --shadow: 0 3px 10px rgba(16, 80, 140, .12);
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #161a18; --card: #1f2421; --ink: #e8ece9; --muted: #9aa69f; --line: #323a35; --accent: #5dbb8d; --accent-ink: #0d1a13; --soft: #22332a; --warn: #e2a06b; --dead: #7d838c; }
+    :root { --bg: #0f2238; --card: #17314f; --ink: #e6f1fb; --muted: #9db7d3; --line: #27486c; --accent: #6cc944; --accent-ink: #0b2010; --soft: #1d3c60; --warn: #f0a46b; --dead: #7f8da0; --blue: #3a95e6; --blue2: #1f6fbf; --shadow: 0 3px 12px rgba(0, 0, 0, .35); }
   }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif; }
+  body { margin: 0; background: linear-gradient(180deg, var(--bg) 0%, var(--soft) 100%) fixed; color: var(--ink); font: 15px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif; }
   main { max-width: 920px; margin: 0 auto; padding: 40px 20px 60px; }
-  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: .5px; }
-  h1 .plumb { display: inline-block; width: 14px; height: 22px; margin-right: 10px; background: var(--accent); clip-path: polygon(50% 0, 100% 35%, 50% 100%, 0 35%); vertical-align: -2px; }
+  .banner { background: linear-gradient(180deg, var(--blue) 0%, var(--blue2) 100%); color: #fff; border-radius: 16px; padding: 20px 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .banner .sub { color: #dcefff; margin: 4px 0 0; }
+  h1 { font-size: 28px; margin: 0; letter-spacing: .5px; }
+  h1 .plumb { display: none; }
   .sub { color: var(--muted); margin: 0 0 28px; }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px; margin-bottom: 18px; }
+  .card { background: var(--card); border: 2px solid var(--line); box-shadow: var(--shadow); border-radius: 16px; padding: 22px; margin-bottom: 18px; }
   .drop { border: 2px dashed var(--line); border-radius: 12px; padding: 34px 20px; text-align: center; cursor: pointer; transition: .15s; }
-  .drop:hover, .drop.over { border-color: var(--accent); background: var(--soft); }
+  .drop:hover, .drop.over { border-color: var(--blue); background: var(--soft); }
   .drop b { display: block; font-size: 17px; margin-bottom: 6px; }
   .drop small { color: var(--muted); }
   code { background: var(--soft); padding: 1px 6px; border-radius: 5px; font-size: 13px; word-break: break-all; }
   .status { margin-top: 12px; color: var(--muted); min-height: 1.4em; }
   .status.err { color: var(--warn); }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
-  .stat { background: var(--soft); border-radius: 10px; padding: 10px 12px; }
-  .stat .n { font-size: 22px; font-weight: 700; }
+  .stat { background: var(--card); border: 2px solid var(--line); box-shadow: var(--shadow); border-radius: 14px; padding: 10px 12px; }
+  .stat .n { font-size: 22px; font-weight: 700; color: var(--blue); }
   .stat .l { font-size: 12px; color: var(--muted); }
-  h2 { font-size: 17px; margin: 0 0 14px; }
+  h2 { font-size: 17px; margin: 0 0 14px; color: var(--blue); }
   .opts label { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; cursor: pointer; }
   .opts input[type=radio], .opts input[type=checkbox] { margin-top: 5px; accent-color: var(--accent); }
   .opts .hint { color: var(--muted); font-size: 13px; }
@@ -43,13 +46,14 @@
   .chosen { margin-top: 8px; font-size: 14px; }
   .chosen button { margin-left: 8px; }
   button { font: inherit; border: 0; border-radius: 10px; padding: 11px 20px; cursor: pointer; }
-  .primary { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .primary { background: linear-gradient(180deg, #7fd34f 0%, var(--accent) 100%); color: var(--accent-ink); font-weight: 700; border-radius: 22px; padding: 11px 24px; box-shadow: 0 2px 0 #3a8a20; }
+  .primary:hover { filter: brightness(1.06); }
   .primary:disabled { opacity: .5; cursor: default; }
-  .ghost { background: transparent; color: var(--accent); padding: 4px 8px; border: 1px solid var(--line); font-size: 13px; }
+  .ghost { background: var(--soft); color: var(--blue); border-radius: 16px; padding: 4px 8px; border: 1px solid var(--line); font-size: 13px; }
   .summary { color: var(--muted); margin-left: 6px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; position: sticky; top: 0; background: var(--card); }
+  th { color: var(--blue); font-weight: 600; font-size: 12px; position: sticky; top: 0; background: var(--card); }
   .tablewrap { max-height: 420px; overflow: auto; }
   .tag { font-size: 12px; padding: 1px 7px; border-radius: 20px; background: var(--soft); white-space: nowrap; }
   .tag.dead { background: transparent; border: 1px solid var(--dead); color: var(--dead); }
@@ -59,22 +63,22 @@
   .hidden { display: none; }
   .treebar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
   .treebar select { font: inherit; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
-  .treewrap { position: relative; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); height: 560px; cursor: grab; }
+  .treewrap { position: relative; overflow: auto; border: 2px solid var(--line); border-radius: 12px; background: var(--soft); height: 560px; cursor: grab; }
   .treewrap.drag { cursor: grabbing; }
   .treewrap svg { display: block; }
   .tsearch { position: relative; flex: 1; min-width: 200px; }
   .tsearch .pick { position: absolute; left: 0; right: 0; z-index: 5; background: var(--card); margin-top: 4px; }
   .legend { color: var(--muted); font-size: 12px; margin-top: 8px; }
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
-  .namelink { cursor: pointer; color: var(--accent); }
+  .namelink { cursor: pointer; color: var(--blue); }
   .namelink:hover { text-decoration: underline; }
   footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 30px; }
 </style>
 </head>
 <body>
 <main>
-  <h1><span class="plumb"></span>Sims 4 族谱导出</h1>
-  <p class="sub">把模拟市民 4 存档里的家族关系导出为 GEDCOM（.ged）文件，可以导入 Ahnenblatt、Gramps、MyHeritage 等族谱软件。</p>
+  <header class="banner"><h1><svg class="ico" width="26" height="26" viewBox="0 0 24 24" style="vertical-align:-4px;margin-right:8px" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1.5"/><rect x="2" y="17" width="6" height="5" rx="1.5"/><rect x="16" y="17" width="6" height="5" rx="1.5"/><path d="M12 7v5M5 17v-3h14v3"/></svg>Sims 4 族谱查看与导出</h1>
+  <p class="sub">把模拟市民 4 存档里的家族关系导出为 GEDCOM（.ged）文件，可以导入 Ahnenblatt、Gramps、MyHeritage 等族谱软件。</p></header>
 
   <section class="card">
     <div class="drop" id="drop">
@@ -99,7 +103,7 @@
         <button class="ghost" id="zin">放大</button><button class="ghost" id="zout">缩小</button><button class="ghost" id="zfit">居中</button>
       </div>
       <div class="treewrap" id="treewrap"></div>
-      <div class="legend">点击任意小人切换中心，可拖动画面浏览。<i style="background:#5b8fd6"></i>男<i style="background:#d6739a"></i>女<i style="background:var(--dead)"></i>已去世<i style="border:1px dashed var(--muted)"></i>已被游戏清除</div>
+      <div class="legend">点击任意小人切换中心，可拖动画面浏览。实线是配偶，虚线是未婚伴侣，点线是前配偶。<i style="background:#5b8fd6"></i>男<i style="background:#d6739a"></i>女<i style="background:var(--dead)"></i>已去世<i style="border:1px dashed var(--muted)"></i>已被游戏清除</div>
     </div>
 
     <div class="card opts">
@@ -117,7 +121,7 @@
       </div>
       <h2 style="margin-top:18px">其他选项</h2>
       <label><input type="checkbox" id="optRemoved" checked>
-        <span>包括已被游戏清除的祖先<br><span class="hint">游戏会删掉一些去世很久的小人。如果关系图里还留有他们的名字就会用上，否则显示为“未知”</span></span></label>
+        <span>包括已被游戏清除的祖先<br><span class="hint">游戏会删掉一些去世很久的小人。游戏只保留了他们的性别和亲属关系，没有保留名字，所以显示为“未知”</span></span></label>
       <label><input type="checkbox" id="optPets">
         <span>包括宠物</span></label>
       <div class="row" style="margin-top:16px">
@@ -251,16 +255,43 @@ const S4G = (() => {
     return new Uint8Array(bytes[0] === 0x78 ? zlib.inflateSync(bytes) : zlib.inflateRawSync(bytes));
   }
 
+  // RefPack / QFS (Sims "internal" compression 0xFFFF)
+  function refpack(src) {
+    let p = 0;
+    const flags = src[p++];
+    if (src[p++] !== 0xFB) throw new Error('RefPack 文件头不正确');
+    const big = flags & 0x80;
+    const rd = (n) => { let v = 0; for (let i = 0; i < n; i++) v = v * 256 + src[p++]; return v; };
+    if (flags & 0x01) rd(big ? 4 : 3);
+    const size = rd(big ? 4 : 3);
+    const out = new Uint8Array(size);
+    let o = 0;
+    while (p < src.length) {
+      const b0 = src[p++];
+      let plain, len = 0, off = 0;
+      if (b0 < 0x80) { const b1 = src[p++]; plain = b0 & 3; len = ((b0 & 0x1C) >> 2) + 3; off = ((b0 & 0x60) << 3) + b1 + 1; }
+      else if (b0 < 0xC0) { const b1 = src[p++], b2 = src[p++]; plain = b1 >> 6; len = (b0 & 0x3F) + 4; off = ((b1 & 0x3F) << 8) + b2 + 1; }
+      else if (b0 < 0xE0) { const b1 = src[p++], b2 = src[p++], b3 = src[p++]; plain = b0 & 3; len = ((b0 & 0x0C) << 6) + b3 + 5; off = ((b0 & 0x10) << 12) + (b1 << 8) + b2 + 1; }
+      else if (b0 < 0xFC) { plain = ((b0 & 0x1F) << 2) + 4; }
+      else { plain = b0 & 3; }
+      for (let i = 0; i < plain; i++) out[o++] = src[p++];
+      for (let i = 0; i < len; i++) { out[o] = out[o - off]; o++; }
+      if (b0 >= 0xFC) break;
+    }
+    return o === size ? out : out.subarray(0, o);
+  }
+
   async function extractSaveData(file) {
     const entries = readDbpf(file);
     const get = async (en) => {
       const raw = file.subarray(en.offset, en.offset + en.fileSize);
       if (en.comp === 0x5A42) return inflate(raw);
       if (en.comp === 0) return raw;
+      if (en.comp === 0xFFFF) return refpack(raw);
       return null;
     };
     const exact = entries.filter(e => e.type === SAVE_TYPE);
-    const tryList = exact.length ? exact : entries.slice().sort((a, b) => b.memSize - a.memSize).slice(0, 5);
+    const tryList = [...exact, ...entries.filter(e => e.type !== SAVE_TYPE).sort((a, b) => b.memSize - a.memSize).slice(0, 5)];
     for (const en of tryList) {
       const data = await get(en);
       if (!data) continue;
@@ -341,10 +372,26 @@ const S4G = (() => {
         }
       }
     }
-    return build(sims, graph, log);
+    // family tree service (game update of Feb 2026): save_slot > gameplay_data > 62 > 1 > nodes
+    const ftree = [];
+    try {
+      const slot = sub(b, first(top, 2));
+      const gp = slot && sub(b, first(slot, 8));
+      const svc = gp && sub(b, first(gp, 62));
+      const gr = svc && sub(b, first(svc, 1));
+      for (const ne of all(gr, 1)) {
+        const n = sub(b, ne);
+        const node = { id: u64(b, first(n, 1)), first: str(b, first(n, 2)), last: str(b, first(n, 3)),
+          sex: GENDER[num(b, first(n, 8))] || 'U', unknown: num(b, first(n, 9)) === 1, edges: [] };
+        if (!node.id) continue;
+        for (const ee of all(n, 4)) { const e = sub(b, ee); node.edges.push({ to: u64(b, first(e, 2)), t: num(b, first(e, 3)) || 0 }); }
+        ftree.push(node);
+      }
+    } catch (e) { /* older saves have no family tree service */ }
+    return build(sims, graph, log, ftree);
   }
 
-  function build(sims, graph, log) {
+  function build(sims, graph, log, ftree = []) {
     const people = new Map(sims);
     const placeholder = (id, extra = {}) => {
       if (!people.has(id)) people.set(id, Object.assign({ id, first: '', last: '', sex: 'U', age: '', dead: false, rel: {}, inSave: false, species: 1, household: '' }, extra));
@@ -373,6 +420,31 @@ const S4G = (() => {
     const spouses = new Set();
     const addSpouse = (a, c) => { if (a && c && a !== c) spouses.add(a < c ? a + '|' + c : c + '|' + a); };
     for (const s of sims.values()) if (s.spouse) addSpouse(s.id, s.spouse);
+
+    // family tree service edges: 1 parent of, 2 child of, 4 spouse, 8/16 former spouse
+    const exSpouses = new Set();
+    const ftNode = new Map(ftree.map(n => [n.id, n]));
+    let ftAdded = 0;
+    const sexOf = (id) => (sims.get(id) || ftNode.get(id) || {}).sex;
+    const addParentBySex = (child, par) => {
+      const cur = parents.get(child) || {};
+      if (cur.M === par || cur.F === par) return;
+      const sx = sexOf(par);
+      let role = sx === 'F' ? 'M' : sx === 'M' ? 'F' : (!cur.M ? 'M' : 'F');
+      if (cur[role]) role = role === 'M' ? 'F' : 'M';
+      if (cur[role]) return;
+      setParent(child, par, role); ftAdded++;
+    };
+    for (const n of ftree) for (const e of n.edges) {
+      if (!e.to || e.to === n.id) continue;
+      if (e.t & 1) addParentBySex(e.to, n.id);
+      if (e.t & 2) addParentBySex(n.id, e.to);
+      const k = n.id < e.to ? n.id + '|' + e.to : e.to + '|' + n.id;
+      if (e.t & 4) { if (!spouses.has(k)) ftAdded++; spouses.add(k); }
+      else if (e.t & (8 | 16)) exSpouses.add(k);
+    }
+    for (const k of spouses) exSpouses.delete(k);
+    if (ftree.length) log && log('家族树补充了 ' + ftAdded + ' 条关系');
 
     // learn relgraph edge meaning from sims we already know, then apply to removed sims
     const learned = {};
@@ -417,26 +489,27 @@ const S4G = (() => {
     const ensure = (id, sexHint) => {
       const p = placeholder(id);
       if (!p.inSave) {
-        const g = graphNameBySim.get(id);
-        if (g && !p.first) { p.first = g.first; p.last = g.last; p.removed = true; }
+        const g = graphNameBySim.get(id) || ftNode.get(id);
+        if (g && !p.first && g.first) { p.first = g.first; p.last = g.last; p.removed = true; }
+        if (g && g.sex && g.sex !== 'U' && p.sex === 'U') p.sex = g.sex;
         if (p.sex === 'U' && sexHint) p.sex = sexHint;
       }
     };
     for (const [c, p] of parents) { ensure(c); if (p.M) ensure(p.M, 'F'); if (p.F) ensure(p.F, 'M'); }
-    for (const k of spouses) { const [a, c] = k.split('|'); ensure(a); ensure(c); }
+    for (const k of [...spouses, ...exSpouses]) { const [a, c] = k.split('|'); ensure(a); ensure(c); }
     // mother/father slots: fix by sex when the game stored them oddly
     for (const [c, p] of parents) {
       const m = p.M && people.get(p.M), f = p.F && people.get(p.F);
       if (m && m.sex === 'M' && (!f || f.sex !== 'M')) { parents.set(c, { M: p.F, F: p.M }); }
     }
-    return { people, parents, spouses, learned, graphNodes: graph.nodes.size, graphEdges: graph.edges.length };
+    return { people, parents, spouses, exSpouses, learned, graphNodes: graph.nodes.size, graphEdges: graph.edges.length };
   }
 
   // ---------- selection ----------
   function components(model, ids) {
     const adj = new Map(); const link = (a, c) => { if (!ids.has(a) || !ids.has(c)) return; (adj.get(a) || adj.set(a, []).get(a)).push(c); (adj.get(c) || adj.set(c, []).get(c)).push(a); };
     for (const [c, p] of model.parents) { if (p.M) link(c, p.M); if (p.F) link(c, p.F); }
-    for (const k of model.spouses) { const [a, c] = k.split('|'); link(a, c); }
+    for (const k of [...model.spouses, ...(model.exSpouses || [])]) { const [a, c] = k.split('|'); link(a, c); }
     const comp = new Map(); let n = 0;
     for (const id of ids) {
       if (comp.has(id)) continue;
@@ -484,6 +557,10 @@ const S4G = (() => {
       const [a, c] = k.split('|'); if (!keep.has(a) || !keep.has(c)) continue;
       getFam(a, c).marr = true;
     }
+    for (const k of model.exSpouses || []) {
+      const [a, c] = k.split('|'); if (!keep.has(a) || !keep.has(c)) continue;
+      const f = getFam(a, c); if (!f.marr) { f.marr = true; f.ex = true; }
+    }
     const fid = new Map(); let j = 0; const famc = new Map(), fams_ = new Map();
     const push = (m, k, v) => (m.get(k) || m.set(k, []).get(k)).push(v);
     for (const [k, f] of fams) {
@@ -527,6 +604,7 @@ const S4G = (() => {
       if (h) L.push('1 HUSB ' + iid.get(h));
       if (w) L.push('1 WIFE ' + iid.get(w));
       if (f.marr) L.push('1 MARR Y');
+      if (f.ex) L.push('1 NOTE 前配偶（已离婚或丧偶）');
       for (const kid of f.kids) L.push('1 CHIL ' + iid.get(kid));
     }
     L.push('0 TRLR');
@@ -618,7 +696,7 @@ const S4G = (() => {
     }).join('') + (rows.length > 1500 ? `<tr><td colspan="6">预览只显示前 1500 人，导出文件包含全部 ${rows.length} 人</td></tr>` : '');
     const fams = new Set();
     for (const [c, p] of model.parents) if (keep.has(c)) fams.add([p.M, p.F].filter(x => keep.has(x)).sort().join('|'));
-    for (const k of model.spouses) { const [a, c] = k.split('|'); if (keep.has(a) && keep.has(c)) fams.add([a, c].sort().join('|')); }
+    for (const k of [...model.spouses, ...(model.exSpouses || [])]) { const [a, c] = k.split('|'); if (keep.has(a) && keep.has(c)) fams.add([a, c].sort().join('|')); }
     fams.delete('');
     $('summary').textContent = keep.size ? `将导出 ${keep.size} 人，${fams.size} 个家庭` : (opts().scope === 'family' ? '请先搜索并选择一个小人' : '没有可导出的小人');
     $('dl').disabled = !keep.size;
@@ -653,12 +731,15 @@ const S4G = (() => {
     kids = new Map(); spouseMap = new Map();
     for (const [c, p] of model.parents) for (const x of [p.M, p.F]) if (x) (kids.get(x) || kids.set(x, []).get(x)).push(c);
     for (const k of model.spouses) { const [a, c] = k.split('|'); (spouseMap.get(a) || spouseMap.set(a, new Set()).get(a)).add(c); (spouseMap.get(c) || spouseMap.set(c, new Set()).get(c)).add(a); }
+    exMap = new Map();
+    for (const k of model.exSpouses || []) { const [a, c] = k.split('|'); (exMap.get(a) || exMap.set(a, new Set()).get(a)).add(c); (exMap.get(c) || exMap.set(c, new Set()).get(c)).add(a); }
   }
+  let exMap = new Map();
   const visible = (id) => { const p = model.people.get(id); if (!p) return false; if (!$('optPets').checked && p.species && p.species !== 1) return false; if (!$('optRemoved').checked && !p.inSave) return false; return true; };
   const childrenOf = (id) => (kids.get(id) || []).filter(visible);
   const parentsOf = (id) => { const p = model.parents.get(id) || {}; return { F: visible(p.F) ? p.F : null, M: visible(p.M) ? p.M : null }; };
   function partnersOf(id) {
-    const s = new Set([...(spouseMap.get(id) || [])].filter(visible));
+    const s = new Set([...(spouseMap.get(id) || []), ...(exMap.get(id) || [])].filter(visible));
     for (const c of childrenOf(id)) { const p = model.parents.get(c) || {}; for (const x of [p.M, p.F]) if (x && x !== id && visible(x)) s.add(x); }
     return [...s];
   }
@@ -685,30 +766,41 @@ const S4G = (() => {
     const unitW = (n) => n * CW + (n - 1) * HG;
 
     // descendants: measure then place
+    function arrange(id, parts) {
+      // first partner to the right, second to the left, and so on
+      const left = [], right = [];
+      parts.forEach((x, i) => (i % 2 ? left.unshift(x) : right.push(x)));
+      return [...left, id, ...right];
+    }
     function measure(id, depth) {
       const parts = partnersOf(id);
-      const own = unitW(1 + parts.length);
-      if (depth >= DOWN) return { id, parts, own, w: own, kids: [] };
-      const order = new Map(parts.map((x, i) => [x, i]));
+      const ids = arrange(id, parts);
+      const own = unitW(ids.length);
+      if (depth >= DOWN) return { id, ids, own, w: own, kids: [] };
+      const order = new Map(ids.map((x, i) => [x, i]));
+      const self = order.get(id);
       const ch = childrenOf(id).slice().sort((a, b) => {
         const pa = model.parents.get(a), pb = model.parents.get(b);
-        const oa = order.get(pa.M === id ? pa.F : pa.M) ?? 99, ob = order.get(pb.M === id ? pb.F : pb.M) ?? 99;
+        const oa = order.get(pa.M === id ? pa.F : pa.M) ?? self, ob = order.get(pb.M === id ? pb.F : pb.M) ?? self;
         return oa - ob;
       }).map(c => measure(c, depth + 1));
       const cw = ch.reduce((s, c) => s + c.w, 0) + Math.max(0, ch.length - 1) * HG * 2;
-      return { id, parts, own, w: Math.max(own, cw), kids: ch };
+      return { id, ids, own, w: Math.max(own, cw), kids: ch };
     }
     function place(node, left, row, isFocus) {
       const unitLeft = left + (node.w - node.own) / 2;
-      const ids = [node.id, ...node.parts];
+      const ids = node.ids;
       const pos = {};
-      ids.forEach((x, i) => { pos[x] = unitLeft + i * (CW + HG); cards.push({ id: x, x: pos[x], y: rowY(row), focus: isFocus && i === 0, ext: i > 0 }); });
-      for (let i = 1; i < ids.length; i++) {
-        const married = (spouseMap.get(node.id) || new Set()).has(ids[i]);
-        lines.push({ d: `M${pos[node.id] + CW} ${rowY(row) + CH / 2}H${pos[ids[i]]}`, dash: !married });
+      ids.forEach((x, i) => { pos[x] = unitLeft + i * (CW + HG); cards.push({ id: x, x: pos[x], y: rowY(row), focus: isFocus && x === node.id, main: x === node.id }); });
+      for (const x of ids) {
+        if (x === node.id) continue;
+        const married = (spouseMap.get(node.id) || new Set()).has(x);
+        const ex = (exMap.get(node.id) || new Set()).has(x);
+        const a = Math.min(pos[x], pos[node.id]) + CW, c = Math.max(pos[x], pos[node.id]);
+        lines.push({ d: `M${a} ${rowY(row) + CH / 2}H${c}`, dash: !married && !ex, ex });
       }
       // hidden deeper generations badge
-      if (!node.kids.length && childrenOf(node.id).length && row >= DOWN) cards[cards.length - ids.length].more = childrenOf(node.id).length;
+      if (!node.kids.length && childrenOf(node.id).length && row >= DOWN) cards.find(c => c.main && c.id === node.id && c.y === rowY(row)).more = childrenOf(node.id).length;
       let x = left + (node.w - (node.kids.reduce((s, c) => s + c.w, 0) + Math.max(0, node.kids.length - 1) * HG * 2)) / 2;
       for (const k of node.kids) {
         const kc = place(k, x, row + 1, false);
@@ -748,7 +840,8 @@ const S4G = (() => {
       let cx = x + CW / 2;
       if (pr.F && pr.M) {
         const married = (spouseMap.get(pr.F) || new Set()).has(pr.M);
-        lines.push({ d: `M${px.F + CW} ${y + CH / 2}H${px.M}`, dash: !married });
+        const ex = (exMap.get(pr.F) || new Set()).has(pr.M);
+        lines.push({ d: `M${px.F + CW} ${y + CH / 2}H${px.M}`, dash: !married && !ex, ex });
       } else cx = (pr.F ? px.F : px.M) + CW / 2;
       const midY = y + CH + VG / 2;
       const startY = pr.F && pr.M ? y + CH / 2 : y + CH;
@@ -773,7 +866,7 @@ const S4G = (() => {
     const css = getComputedStyle(document.documentElement);
     const col = (v) => css.getPropertyValue(v).trim();
     let html = '';
-    for (const l of lines) html += `<path d="${l.d}" fill="none" stroke="${col('--muted')}" stroke-width="1.4" ${l.dash ? 'stroke-dasharray="4 4"' : ''} opacity=".7"/>`;
+    for (const l of lines) html += `<path d="${l.d}" fill="none" stroke="${col('--muted')}" stroke-width="1.4" ${l.dash ? 'stroke-dasharray="4 4"' : l.ex ? 'stroke-dasharray="1 4" stroke-linecap="round" stroke-width="2.4"' : ''} opacity=".7"/>`;
     for (const c of cards) {
       const p = model.people.get(c.id);
       const sexCol = p.sex === 'M' ? '#5b8fd6' : p.sex === 'F' ? '#d6739a' : col('--muted');

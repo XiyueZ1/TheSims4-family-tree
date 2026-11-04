@@ -17,7 +17,8 @@ Everything runs locally in your browser. Your save file is never uploaded.
 - **Family tree viewer.** Pick any Sim to see their ancestors, siblings, partners and descendants. Click a Sim to move the view to them.
 - **GEDCOM export** with parents, marriages and death status.
 - **Export scope.** Export every Sim with a family or marriage link, every Sim in the save, or only the family of one chosen Sim.
-- **Removed ancestors.** The game deletes some long dead Sims. The tool recovers their names from the save's relationship graph when possible. Otherwise they appear as "未知" (unknown).
+- **Removed ancestors.** The game deletes some long dead Sims. It keeps their gender and family links but not their names, so they appear as "未知" (unknown).
+- **Former spouses.** Divorced or widowed spouses are included and marked in the notes.
 - Life stage, household and Sim ID are written to each person's notes.
 - Pets can be included or left out.
 
@@ -56,7 +57,8 @@ The save file structure is based on the protobuf schema in [ts4-save-data-reader
 - **族谱查看。** 选中任意一个小人，查看他的祖先、兄弟姐妹、配偶和子孙。点击其他小人可以切换中心。
 - **导出 GEDCOM**，包括父母、婚姻关系和去世状态。
 - **导出范围。** 可以导出所有有亲属或婚姻关系的小人、存档里的全部小人，或者只导出某个小人所在的家族。
-- **已被清除的祖先。** 游戏会删掉一些去世很久的小人。如果存档的关系图里还留有他们的名字，工具会把名字找回来，否则显示为“未知”。
+- **已被清除的祖先。** 游戏会删掉一些去世很久的小人，只保留他们的性别和亲属关系，不保留名字，所以显示为“未知”。
+- **前配偶。** 离婚或丧偶的前配偶也会导出，并在备注里注明。
 - 年龄段、所属家庭和 Sim ID 会写在每个人的备注里。
 - 可以选择是否包括宠物。
 
