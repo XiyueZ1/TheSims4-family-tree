@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sims 4 族谱导出 GEDCOM</title>
+<title>Sims 4 存档查看器</title>
 <style>
   :root {
     --bg: #d9ecfa; --card: #ffffff; --ink: #183a5c; --muted: #5b7899; --line: #c3dbf0;
@@ -29,9 +29,9 @@
   code { background: var(--soft); padding: 1px 6px; border-radius: 5px; font-size: 13px; word-break: break-all; }
   .status { margin-top: 12px; color: var(--muted); min-height: 1.4em; }
   .status.err { color: var(--warn); }
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 10px; margin-bottom: 18px; }
   .stat { background: var(--card); border: 2px solid var(--line); box-shadow: var(--shadow); border-radius: 14px; padding: 10px 12px; }
-  .stat .n { font-size: 22px; font-weight: 700; color: var(--blue); }
+  .stat .n { font-size: 20px; font-weight: 700; color: var(--blue); }
   .stat .l { font-size: 12px; color: var(--muted); }
   h2 { font-size: 17px; margin: 0 0 14px; color: var(--blue); }
   .opts label { display: flex; gap: 8px; align-items: flex-start; margin: 8px 0; cursor: pointer; }
@@ -72,13 +72,27 @@
   .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: -1px; }
   .namelink { cursor: pointer; color: var(--blue); }
   .namelink:hover { text-decoration: underline; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+  .tabs button { background: var(--card); color: var(--blue); border: 2px solid var(--line); border-radius: 22px; padding: 8px 18px; font-weight: 600; box-shadow: var(--shadow); }
+  .tabs button.on { background: linear-gradient(180deg, var(--blue) 0%, var(--blue2) 100%); color: #fff; border-color: var(--blue2); }
+  .panel { display: none; } .panel.on { display: block; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .filters select, .filters input[type=search] { font: inherit; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .filters input[type=search] { flex: 1; min-width: 160px; }
+  .count { color: var(--muted); font-size: 13px; margin: 4px 0 8px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.sm { font-size: 13px; color: var(--muted); }
+  .chip { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 20px; background: var(--soft); color: var(--blue); margin: 1px 2px; white-space: nowrap; }
+  .chip.green { background: #e3f5da; color: #2f7d1e; } .chip.grey { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  details summary { cursor: pointer; color: var(--blue); font-weight: 600; margin-bottom: 8px; }
+  tr.clickrow { cursor: pointer; } tr.clickrow:hover td { background: var(--soft); }
   footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 30px; }
 </style>
 </head>
 <body>
 <main>
-  <header class="banner"><h1><svg class="ico" width="26" height="26" viewBox="0 0 24 24" style="vertical-align:-4px;margin-right:8px" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1.5"/><rect x="2" y="17" width="6" height="5" rx="1.5"/><rect x="16" y="17" width="6" height="5" rx="1.5"/><path d="M12 7v5M5 17v-3h14v3"/></svg>Sims 4 族谱查看与导出</h1>
-  <p class="sub">把模拟市民 4 存档里的家族关系导出为 GEDCOM（.ged）文件，可以导入 Ahnenblatt、Gramps、MyHeritage 等族谱软件。</p></header>
+  <header class="banner"><h1><svg class="ico" width="26" height="26" viewBox="0 0 24 24" style="vertical-align:-4px;margin-right:8px" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="5" rx="1.5"/><rect x="2" y="17" width="6" height="5" rx="1.5"/><rect x="16" y="17" width="6" height="5" rx="1.5"/><path d="M12 7v5M5 17v-3h14v3"/></svg>Sims 4 存档查看器</h1>
+  <p class="sub">查看模拟市民 4 存档里的族谱、城镇、用地和家庭，还可以把族谱导出为 GEDCOM（.ged）文件，导入 Ahnenblatt、Gramps 等族谱软件。</p></header>
 
   <section class="card">
     <div class="drop" id="drop">
@@ -93,6 +107,13 @@
 
   <section id="result" class="hidden">
     <div class="stats" id="stats"></div>
+    <nav class="tabs" id="tabs">
+      <button data-tab="tree" class="on">族谱</button>
+      <button data-tab="lots">城镇与用地</button>
+      <button data-tab="hh">家庭</button>
+      <button data-tab="export">导出 GEDCOM</button>
+    </nav>
+    <div class="panel on" data-panel="tree">
 
     <div class="card" id="treeCard">
       <h2>族谱查看</h2>
@@ -106,6 +127,49 @@
       <div class="legend">点击任意小人切换中心，可拖动画面浏览。实线是配偶，虚线是未婚伴侣，点线是前配偶。<i style="background:#5b8fd6"></i>男<i style="background:#d6739a"></i>女<i style="background:var(--dead)"></i>已去世<i style="border:1px dashed var(--muted)"></i>已被游戏清除</div>
     </div>
 
+    </div>
+
+    <div class="panel" data-panel="lots">
+      <div class="card">
+        <h2>城镇与用地</h2>
+        <details id="townBox"><summary>各城镇概况</summary><div class="tablewrap" style="max-height:300px"><table>
+          <thead><tr><th>城镇</th><th class="num">用地</th><th class="num">有人住</th><th class="num">空房</th><th class="num">空地</th></tr></thead>
+          <tbody id="townBody"></tbody></table></div></details>
+        <div class="filters">
+          <select id="lTown"></select>
+          <select id="lState">
+            <option value="">全部状态</option><option value="occ">有人住</option><option value="vacant">空房（可入住）</option>
+            <option value="empty">空地</option><option value="apt">公寓单元</option><option value="sparse">家具很少</option>
+          </select>
+          <select id="lType"><option value="">全部类型</option><option value="res">住宅</option><option value="pub">公共用地</option></select>
+          <select id="lSort"><option value="town">按城镇</option><option value="cost">按物品总价</option><option value="beds">按卧室数</option><option value="objs">按物品数</option><option value="name">按名字</option></select>
+          <input type="search" id="lSearch" placeholder="搜索用地或家庭">
+        </div>
+        <div class="count" id="lCount"></div>
+        <div class="tablewrap" style="max-height:560px"><table>
+          <thead><tr><th>用地</th><th>城镇</th><th>类型</th><th>住户</th><th>房型</th><th class="num">物品数</th><th class="num">物品总价</th></tr></thead>
+          <tbody id="lBody"></tbody></table></div>
+        <p class="legend">物品总价是用地上所有物品的价格总和，不包括墙、地板和地皮，所以比游戏里显示的用地价值低。公寓单元的家具记在整栋楼里，这里显示为“—”。</p>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="hh">
+      <div class="card">
+        <h2>家庭</h2>
+        <div class="filters">
+          <select id="hSort"><option value="money">按存款</option><option value="size">按人数</option><option value="name">按名字</option></select>
+          <label style="font-size:14px"><input type="checkbox" id="hHidden"> 显示隐藏家庭</label>
+          <label style="font-size:14px"><input type="checkbox" id="hHomeless"> 只看没有住处的</label>
+          <input type="search" id="hSearch" placeholder="搜索家庭或成员">
+        </div>
+        <div class="count" id="hCount"></div>
+        <div class="tablewrap" style="max-height:600px"><table>
+          <thead><tr><th>家庭</th><th>成员</th><th>住址</th><th class="num">存款</th></tr></thead>
+          <tbody id="hBody"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="panel" data-panel="export">
     <div class="card opts">
       <h2>导出范围</h2>
       <label><input type="radio" name="scope" value="related" checked>
@@ -137,9 +201,7 @@
         <tbody id="tbody"></tbody>
       </table></div>
     </div>
-  </section>
-
-  <section class="card help">
+  <div class="card help">
     <h2>导入 Ahnenblatt</h2>
     <ol>
       <li>打开 Ahnenblatt，选择 <b>Datei → Öffnen</b>（文件 → 打开）。英文界面是 File → Open。</li>
@@ -148,7 +210,10 @@
     </ol>
     <p class="hint" style="color:var(--muted);font-size:13px;margin:8px 0 0">
       小人的年龄段、所属家庭和 Sim ID 会写在每个人的备注里。游戏不记录出生和死亡日期，所以去世的小人只标记为“已去世”。</p>
+  </div>
+    </div>
   </section>
+
 
   <footer>本工具在浏览器本地运行，不收集任何数据。与 EA 和 Maxis 无关。</footer>
 </main>
@@ -295,7 +360,7 @@ const S4G = (() => {
     for (const en of tryList) {
       const data = await get(en);
       if (!data) continue;
-      try { const top = parse(data); if (all(top, 6).length) return { data, top }; } catch (e) { /* try next */ }
+      try { const top = parse(data); if (all(top, 6).length) return { data, top, entries, get }; } catch (e) { /* try next */ }
     }
     throw new Error('在存档里没有找到小人数据');
   }
@@ -306,7 +371,7 @@ const S4G = (() => {
 
   async function load(fileBytes, log = () => {}) {
     log('正在读取存档结构…');
-    const { data: b, top } = await extractSaveData(fileBytes);
+    const { data: b, top, entries, get } = await extractSaveData(fileBytes);
     log('正在解析小人…');
     const sims = new Map();     // id -> sim
     const households = new Map();
@@ -388,7 +453,67 @@ const S4G = (() => {
         ftree.push(node);
       }
     } catch (e) { /* older saves have no family tree service */ }
-    return build(sims, graph, log, ftree);
+    const model = build(sims, graph, log, ftree);
+    try { model.world = await loadWorld(b, top, entries, get, sims, log); } catch (e) { console.warn('world', e); model.world = null; }
+    return model;
+  }
+
+  const VENUE = { 28614: '住宅', 16869: '酒吧', 16870: '夜店', 16873: '健身房', 16874: '图书馆', 16875: '酒廊', 16876: '博物馆',
+    25847: '公园', 103675: '出租度假屋', 107453: '公园', 105157: '零售店', 122247: '咖啡馆', 109774: '警察局', 110576: '医院',
+    107487: '科学实验室', 158847: '兽医诊所', 173833: '出租度假屋', 205126: '海滩', 208182: '学生宿舍', 278305: '高中' };
+  async function loadWorld(b, top, entries, get, sims, log) {
+    log && log('正在读取城镇和用地…');
+    const towns = new Map();
+    const venueOf = new Map();
+    for (const ne of all(top, 4)) {
+      const n = sub(b, ne);
+      const id = u64(b, first(n, 1));
+      towns.set(id, { id, name: str(b, first(n, 3)) || '(未命名)' });
+      for (const le of all(n, 5)) { const l = sub(b, le); venueOf.set(u64(b, first(l, 2)), num(b, first(l, 7))); }
+    }
+    const households = new Map();
+    for (const he of all(top, 5)) {
+      const h = sub(b, he);
+      const id = u64(b, first(h, 2));
+      households.set(id, { id, name: str(b, first(h, 3)), money: num(b, first(h, 5)) || 0, home: u64(b, first(h, 4)),
+        desc: str(b, first(h, 18)), hidden: num(b, first(h, 26)) === 1, player: num(b, first(h, 31)) === 1, members: [] });
+    }
+    for (const s of sims.values()) { const h = households.get(s.householdId); if (h) h.members.push(s.id); }
+    // furniture per zone (resource type 6 = ZoneObjectData, instance = zone id)
+    const objs = new Map();
+    const zoneRes = entries.filter(e => e.type === 6);
+    let k = 0;
+    for (const en of zoneRes) {
+      const zid = (BigInt(en.instEx) << 32n | BigInt(en.inst)).toString();
+      try {
+        const zd = await get(en);
+        if (!zd || zd.length < 16) { objs.set(zid, { n: 0, cost: 0 }); continue; }
+        const z = parse(zd);
+        const list = all(sub(zd, first(z, 3)), 1);
+        let cost = 0;
+        for (const oe of list) { const o = parse(zd, oe.s, oe.e); cost += num(zd, first(o, 13)) || 0; }
+        objs.set(zid, { n: list.length, cost });
+      } catch (e) { /* skip unreadable lot */ }
+      if (++k % 60 === 0) { log && log('正在读取用地家具… ' + k + '/' + zoneRes.length); await new Promise(r => setTimeout(r, 0)); }
+    }
+    const lots = [];
+    for (const ze of all(top, 7)) {
+      const z = sub(b, ze);
+      const id = u64(b, first(z, 1));
+      const hid = u64(b, first(z, 6));
+      const o = objs.get(id);
+      const venue = venueOf.get(id);
+      const lot = { id, name: str(b, first(z, 2)) || '(未命名)', town: u64(b, first(z, 10)), household: hid && households.has(hid) ? hid : null,
+        beds: num(b, first(z, 16)) || 0, baths: num(b, first(z, 17)) || 0, desc: str(b, first(z, 14)),
+        venue, venueName: VENUE[venue] || (venue ? '其他' : ''), objs: o ? o.n : null, cost: o ? o.cost : null };
+      lot.residential = venue === 28614;
+      lot.apartment = lot.objs === 0 && lot.beds > 0;
+      lot.emptyLand = !lot.apartment && lot.beds === 0 && lot.baths === 0 && (lot.objs || 0) <= 20;
+      lot.sparse = !lot.apartment && !lot.emptyLand && lot.beds > 0 && (lot.objs || 0) < 40;
+      lots.push(lot);
+    }
+    for (const t of towns.values()) t.lots = lots.filter(l => l.town === t.id);
+    return { towns, households, lots };
   }
 
   function build(sims, graph, log, ftree = []) {
@@ -645,7 +770,7 @@ const S4G = (() => {
       showStats();
       refresh();
       $('result').classList.remove('hidden');
-      indexModel(); zoom = 1; focusId = pickDefaultFocus(); renderTree();
+      indexModel(); zoom = 1; focusId = pickDefaultFocus(); showTab('tree'); initWorld();
       status('读取完成：' + file.name);
     } catch (err) {
       console.error(err);
@@ -663,6 +788,7 @@ const S4G = (() => {
       [inSave.filter(p => p.dead).length, '已去世'],
       [P.filter(p => !p.inSave).length, '已被清除的祖先'],
     ];
+    if (model.world) items.push([model.world.towns.size, '个城镇'], [model.world.lots.length, '块用地'], [model.world.households.size, '个家庭']);
     $('stats').innerHTML = items.map(([n, l]) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join('');
   }
 
@@ -924,9 +1050,104 @@ const S4G = (() => {
   });
   $('tbody').addEventListener('click', (e) => {
     const s = e.target.closest('[data-focus]'); if (!s) return;
-    setFocus(s.dataset.focus);
+    showTab('tree'); setFocus(s.dataset.focus);
     $('treeCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+
+
+  // ================= tabs, lots, households =================
+  function showTab(t) {
+    document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.dataset.panel === t));
+    if (t === 'tree') renderTree();
+  }
+  $('tabs').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) showTab(b.dataset.tab); });
+  const money = (n) => '§' + Number(n || 0).toLocaleString('en-US');
+  const W = () => model && model.world;
+  const townName = (id) => { const t = W().towns.get(id); return t ? t.name : ''; };
+  const hhName = (id) => { const h = W().households.get(id); return h ? (h.name || '(无名家庭)') : ''; };
+  const lotState = (l) => l.household ? 'occ' : l.apartment ? 'apt' : l.emptyLand ? 'empty' : l.residential ? 'vacant' : 'pub';
+  let hhOnly = null;
+
+  function initWorld() {
+    const w = W();
+    document.querySelectorAll('#tabs button[data-tab=lots], #tabs button[data-tab=hh]').forEach(b => b.style.display = w ? '' : 'none');
+    if (!w) return;
+    const towns = [...w.towns.values()].filter(t => t.lots.length);
+    $('lTown').innerHTML = '<option value="">全部城镇</option>' + towns.map(t => `<option value="${t.id}">${esc(t.name)}（${t.lots.length}）</option>`).join('');
+    $('townBody').innerHTML = towns.map(t => {
+      const L = t.lots;
+      return `<tr class="clickrow" data-town="${t.id}"><td>${esc(t.name)}</td><td class="num">${L.length}</td><td class="num">${L.filter(l => l.household).length}</td><td class="num">${L.filter(l => !l.household && lotState(l) === 'vacant').length}</td><td class="num">${L.filter(l => !l.household && l.emptyLand).length}</td></tr>`;
+    }).join('');
+    hhOnly = null;
+    renderLots(); renderHH();
+  }
+  $('townBody').addEventListener('click', (e) => { const r = e.target.closest('[data-town]'); if (!r) return; $('lTown').value = r.dataset.town; renderLots(); });
+
+  function renderLots() {
+    const w = W(); if (!w) return;
+    const town = $('lTown').value, st = $('lState').value, ty = $('lType').value, q = $('lSearch').value.trim().toLowerCase();
+    let L = w.lots.filter(l => {
+      if (town && l.town !== town) return false;
+      if (ty === 'res' && !l.residential) return false;
+      if (ty === 'pub' && l.residential) return false;
+      if (st === 'occ' && !l.household) return false;
+      if (st === 'vacant' && lotState(l) !== 'vacant') return false;
+      if (st === 'empty' && !(l.emptyLand && !l.household)) return false;
+      if (st === 'apt' && !l.apartment) return false;
+      if (st === 'sparse' && !l.sparse) return false;
+      if (q && !(l.name.toLowerCase().includes(q) || hhName(l.household).toLowerCase().includes(q) || townName(l.town).toLowerCase().includes(q))) return false;
+      return true;
+    });
+    const sort = $('lSort').value;
+    const cmp = {
+      town: (a, b) => townName(a.town).localeCompare(townName(b.town)) || a.name.localeCompare(b.name),
+      cost: (a, b) => (b.cost || 0) - (a.cost || 0), beds: (a, b) => b.beds - a.beds || b.baths - a.baths,
+      objs: (a, b) => (b.objs || 0) - (a.objs || 0), name: (a, b) => a.name.localeCompare(b.name),
+    }[sort];
+    L.sort(cmp);
+    $('lCount').textContent = `共 ${L.length} 块用地` + (L.length ? `，其中有人住 ${L.filter(l => l.household).length} 块` : '');
+    $('lBody').innerHTML = L.map(l => {
+      const s = lotState(l);
+      const who = l.household ? `<span class="namelink" data-hh="${l.household}">${esc(hhName(l.household))}</span> <span class="sm" style="color:var(--muted);font-size:12px">${w.households.get(l.household).members.length} 人</span>`
+        : s === 'empty' ? '<span class="chip grey">空地</span>' : s === 'vacant' ? '<span class="chip green">空房</span>' : s === 'apt' ? '<span class="chip grey">空公寓</span>' : '';
+      const room = l.beds || l.baths ? `${l.beds} 房 ${l.baths} 卫` : '';
+      const type = l.venueName === '其他' ? `<span title="类型编号 ${l.venue}">其他</span>` : esc(l.venueName);
+      return `<tr><td title="${esc(l.desc)}">${esc(l.name)}${l.sparse ? ' <span class="chip">家具很少</span>' : ''}</td><td class="sm">${esc(townName(l.town))}</td><td class="sm">${type}</td><td>${who}</td><td>${room}</td>`
+        + `<td class="num">${l.apartment ? '—' : (l.objs ?? '')}</td><td class="num">${l.apartment ? '—' : l.cost != null ? money(l.cost) : ''}</td></tr>`;
+    }).join('');
+  }
+  ['lTown', 'lState', 'lType', 'lSort'].forEach(id => $(id).addEventListener('change', renderLots));
+  $('lSearch').addEventListener('input', renderLots);
+
+  function renderHH() {
+    const w = W(); if (!w) return;
+    const q = $('hSearch').value.trim().toLowerCase();
+    const lotById = new Map(w.lots.map(l => [l.id, l]));
+    let H = [...w.households.values()].filter(h => {
+      if (hhOnly) return h.id === hhOnly;
+      if (!$('hHidden').checked && h.hidden) return false;
+      const lot = lotById.get(h.home);
+      if ($('hHomeless').checked && lot) return false;
+      if (q && !((h.name || '').toLowerCase().includes(q) || h.members.some(id => nameOf(model.people.get(id)).toLowerCase().includes(q)))) return false;
+      return true;
+    });
+    const sort = $('hSort').value;
+    H.sort(sort === 'money' ? (a, b) => b.money - a.money : sort === 'size' ? (a, b) => b.members.length - a.members.length : (a, b) => (a.name || '').localeCompare(b.name || ''));
+    $('hCount').innerHTML = hhOnly ? `只显示 <b>${esc(hhName(hhOnly))}</b> <button class="ghost" id="hAll">显示全部家庭</button>` : `共 ${H.length} 个家庭`;
+    if (hhOnly) $('hAll').onclick = () => { hhOnly = null; renderHH(); };
+    $('hBody').innerHTML = H.map(h => {
+      const lot = lotById.get(h.home);
+      const mem = h.members.map(id => { const p = model.people.get(id); return `<span class="namelink" data-focus="${id}">${esc(nameOf(p))}</span>${p.dead ? ' ✝' : ''}`; }).join('，');
+      const tags = (h.player ? '<span class="chip green">玩过</span>' : '') + (h.hidden ? '<span class="chip grey">隐藏</span>' : '');
+      const addr = lot ? `${esc(lot.name)} <span style="color:var(--muted);font-size:12px">${esc(townName(lot.town))}${lot.beds ? ' · ' + lot.beds + ' 房 ' + lot.baths + ' 卫' : ''}</span>` : '<span class="chip grey">无住处</span>';
+      return `<tr><td title="${esc(h.desc)}"><b>${esc(h.name || '(无名家庭)')}</b> ${tags}</td><td>${mem}</td><td>${addr}</td><td class="num">${money(h.money)}</td></tr>`;
+    }).join('');
+  }
+  ['hSort', 'hHidden', 'hHomeless'].forEach(id => $(id).addEventListener('change', renderHH));
+  $('hSearch').addEventListener('input', () => { hhOnly = null; renderHH(); });
+  $('lBody').addEventListener('click', (e) => { const s = e.target.closest('[data-hh]'); if (!s) return; hhOnly = s.dataset.hh; renderHH(); showTab('hh'); });
+  $('hBody').addEventListener('click', (e) => { const s = e.target.closest('[data-focus]'); if (!s) return; showTab('tree'); setFocus(s.dataset.focus); $('treeCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 
   // minimal stored zip (used where only .zip downloads are allowed)
   const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
